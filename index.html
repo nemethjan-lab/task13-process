@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task 13 — Building the Lyme cartogram</title>
+<style>
+:root{
+  --ink-100:#1a1a1a;
+  --ink-80:#333;
+  --ink-60:#666;
+  --ink-30:#b3b3b3;
+  --ink-10:#ececec;
+  --accent:#2e4c9e;
+  --bg:#f4f5f7;
+  --font:"Inter","Helvetica Neue",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;}
+body{
+  font-family:var(--font);
+  color:var(--ink-80);
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;
+  height:100vh;overflow:auto;
+}
+.wrap{
+  width:100%;max-width:1100px;
+  padding:20px 24px 18px;
+  display:flex;flex-direction:column;flex:1 1 auto;
+  height:100%;
+}
+header{margin-bottom:14px;}
+.eyebrow{
+  font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent);
+}
+h1{font-size:20px;font-weight:600;color:var(--ink-100);margin:2px 0 4px;}
+.sub{font-size:13px;color:var(--ink-60);margin:0;}
+
+.stage{
+  position:relative;
+  background:#fff;
+  border:1px solid var(--ink-10);
+  border-radius:10px;
+  flex:1 1 auto;
+  min-height:240px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
+}
+.stage img{
+  max-width:100%;max-height:100%;
+  width:auto;height:auto;
+  object-fit:contain;
+  display:block;
+  user-select:none;-webkit-user-drag:none;
+}
+/* Start overlay */
+.overlay{
+  position:absolute;inset:0;
+  background:rgba(255,255,255,.96);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:18px;text-align:center;padding:24px;
+  transition:opacity .4s ease;
+}
+.overlay h2{font-size:22px;font-weight:600;color:var(--ink-100);margin:0;}
+.overlay p{font-size:14px;color:var(--ink-60);margin:0;max-width:440px;line-height:1.5;}
+.overlay.hidden{opacity:0;pointer-events:none;}
+.btn-start{
+  margin-top:6px;
+  font-family:var(--font);font-size:16px;font-weight:600;
+  color:#fff;background:var(--accent);
+  border:none;border-radius:8px;
+  padding:13px 34px;cursor:pointer;
+  box-shadow:0 2px 8px rgba(46,76,158,.28);
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.btn-start:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(46,76,158,.34);}
+
+/* version badge (sits above the stage, never over the chart) */
+.statusbar{display:flex;align-items:center;margin:0 2px 8px;}
+.badge{
+  font-size:12px;font-weight:600;color:var(--ink-60);
+  background:#fff;
+  border:1px solid var(--ink-10);border-radius:6px;
+  padding:4px 9px;letter-spacing:.02em;
+}
+.badge b{color:var(--accent);}
+
+/* progress segments */
+.segments{
+  display:flex;gap:3px;margin-top:14px;
+}
+.seg{
+  flex:1 1 0;height:5px;border-radius:3px;background:var(--ink-10);
+  cursor:pointer;transition:background .2s ease;
+}
+.seg.done{background:var(--accent);}
+.seg.current{background:var(--accent);box-shadow:0 0 0 2px rgba(46,76,158,.25);}
+
+/* controls */
+.controls{
+  display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap;
+}
+.ctrl{
+  font-family:var(--font);font-size:13px;font-weight:500;
+  color:var(--ink-80);background:#fff;
+  border:1px solid var(--ink-30);border-radius:7px;
+  padding:8px 14px;cursor:pointer;
+  transition:border-color .15s ease,color .15s ease;
+}
+.ctrl:hover{border-color:var(--accent);color:var(--accent);}
+.ctrl:disabled{opacity:.4;cursor:default;border-color:var(--ink-30);color:var(--ink-80);}
+.ctrl.primary{background:var(--accent);color:#fff;border-color:var(--accent);min-width:104px;}
+.ctrl.primary:hover{color:#fff;}
+.spacer{flex:1 1 auto;}
+.speed{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-60);}
+.speed input{accent-color:var(--accent);}
+.counter{font-size:13px;color:var(--ink-60);min-width:64px;text-align:right;}
+
+footer{margin-top:18px;font-size:11px;color:var(--ink-30);}
+@media (max-width:640px){
+  .counter{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Task 13 — Process documentation</div>
+    <h1>Maximising the data-to-ink ratio</h1>
+  </header>
+
+  <div class="statusbar">
+    <span class="badge" id="badge"><b id="badgeVer">v01</b> &middot; step <span id="badgeStep">1</span> / 15</span>
+  </div>
+
+  <div class="stage" id="stage">
+    <img id="frame" alt="Plot version" src="versions/v01.png">
+    <div class="overlay" id="overlay">
+      <h2>From first draft to final</h2>
+      <p>Each step removes ink that does not carry data: bars become ticks, the box and gridlines go, labels shrink. Watch the chart approach Tufte&rsquo;s minimum.</p>
+      <button class="btn-start" id="startBtn">▶ Start</button>
+    </div>
+  </div>
+
+  <div class="segments" id="segments"></div>
+
+  <div class="controls">
+    <button class="ctrl" id="restartBtn" title="Restart (Home)">⏮ Restart</button>
+    <button class="ctrl" id="prevBtn" title="Previous (←)">◀ Prev</button>
+    <button class="ctrl primary" id="playBtn" title="Play / Pause (Space)">▶ Play</button>
+    <button class="ctrl" id="nextBtn" title="Next (→)">Next ▶</button>
+    <div class="spacer"></div>
+    <label class="speed" title="Playback speed">
+      <span>Slow</span>
+      <input type="range" id="speed" min="0" max="100" step="1" value="75">
+      <span>Fast</span>
+    </label>
+    <span class="counter" id="counter">1 / 16</span>
+  </div>
+
+  <footer>Prompt2Plot — Portfolio &middot; Jan Nemeth</footer>
+</div>
+
+<script>
+const VERSIONS = ["v01","v02","v03","v04","v05","v06","v07","v08","v09","v10","v11","v12","v13","v14","v15"];
+const N = VERSIONS.length;
+
+const frame   = document.getElementById("frame");
+const badgeVer= document.getElementById("badgeVer");
+const badgeStep=document.getElementById("badgeStep");
+const overlay = document.getElementById("overlay");
+const startBtn= document.getElementById("startBtn");
+const playBtn = document.getElementById("playBtn");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const restartBtn=document.getElementById("restartBtn");
+const speedEl = document.getElementById("speed");
+const counter = document.getElementById("counter");
+const segWrap = document.getElementById("segments");
+
+let idx = 0;
+let playing = false;
+let timer = null;
+let started = false;
+
+// preload
+VERSIONS.forEach(v => { const i = new Image(); i.src = `versions/${v}.png`; });
+
+// build progress segments
+const segs = VERSIONS.map((v, i) => {
+  const s = document.createElement("div");
+  s.className = "seg";
+  s.title = v;
+  s.addEventListener("click", () => { stop(); show(i); });
+  segWrap.appendChild(s);
+  return s;
+});
+
+function render(){
+  badgeVer.textContent = VERSIONS[idx];
+  badgeStep.textContent = idx + 1;
+  counter.textContent = `${idx + 1} / ${N}`;
+  segs.forEach((s, i) => {
+    s.classList.toggle("done", i < idx);
+    s.classList.toggle("current", i === idx);
+  });
+  prevBtn.disabled = idx === 0;
+  nextBtn.disabled = idx === N - 1;
+}
+
+function show(i){
+  idx = Math.max(0, Math.min(N - 1, i));
+  frame.src = `versions/${VERSIONS[idx]}.png`;
+  render();
+}
+
+function play(){
+  if (idx === N - 1) idx = 0;     // replay from start if at end
+  playing = true;
+  playBtn.textContent = "❚❚ Pause";
+  schedule();
+}
+function frameMs(){
+  // Slider 0 = slow, 100 = fast. Map to milliseconds per frame.
+  const SLOW_MS = 2600, FAST_MS = 400;
+  const t = (parseFloat(speedEl.value) || 0) / 100;
+  return SLOW_MS - t * (SLOW_MS - FAST_MS);
+}
+function schedule(){
+  clearTimeout(timer);
+  const ms = frameMs();
+  timer = setTimeout(() => {
+    if (idx < N - 1){ show(idx + 1); schedule(); }
+    else { stop(); playBtn.textContent = "↻ Replay"; }
+  }, ms);
+}
+function stop(){
+  playing = false;
+  clearTimeout(timer);
+  playBtn.textContent = idx === N - 1 ? "↻ Replay" : "▶ Play";
+}
+function toggle(){ playing ? stop() : play(); }
+
+function begin(){
+  started = true;
+  overlay.classList.add("hidden");
+  show(0);
+  play();
+}
+
+startBtn.addEventListener("click", begin);
+playBtn.addEventListener("click", () => { if (!started){ begin(); return; } toggle(); });
+nextBtn.addEventListener("click", () => { stop(); show(idx + 1); });
+prevBtn.addEventListener("click", () => { stop(); show(idx - 1); });
+restartBtn.addEventListener("click", () => { stop(); show(0); });
+speedEl.addEventListener("input", () => { if (playing) schedule(); });
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === " "){ e.preventDefault(); if (!started){ begin(); } else { toggle(); } }
+  else if (e.key === "ArrowRight"){ stop(); show(idx + 1); }
+  else if (e.key === "ArrowLeft"){ stop(); show(idx - 1); }
+  else if (e.key === "Home"){ stop(); show(0); }
+});
+
+render();
+</script>
+</body>
+</html>
