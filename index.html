@@ -133,7 +133,7 @@ footer{margin-top:18px;font-size:11px;color:var(--ink-30);}
   </header>
 
   <div class="statusbar">
-    <span class="badge" id="badge"><b id="badgeVer">v01</b> &middot; step <span id="badgeStep">1</span> / 15</span>
+    <span class="badge" id="badge"><b id="badgeVer">v01</b> &middot; step <span id="badgeStep">1</span> / <span id="badgeTotal">16</span></span>
   </div>
 
   <div class="stage" id="stage">
@@ -165,12 +165,13 @@ footer{margin-top:18px;font-size:11px;color:var(--ink-30);}
 </div>
 
 <script>
-const VERSIONS = ["v01","v02","v03","v04","v05","v06","v07","v08","v09","v10","v11","v12","v13","v14","v15"];
+const VERSIONS = ["v01","v02","v03","v04","v05","v06","v07","v08","v09","v10","v11","v12","v13","v14","v15","v16"];
 const N = VERSIONS.length;
 
 const frame   = document.getElementById("frame");
 const badgeVer= document.getElementById("badgeVer");
 const badgeStep=document.getElementById("badgeStep");
+const badgeTotal=document.getElementById("badgeTotal");
 const overlay = document.getElementById("overlay");
 const startBtn= document.getElementById("startBtn");
 const playBtn = document.getElementById("playBtn");
@@ -202,6 +203,7 @@ const segs = VERSIONS.map((v, i) => {
 function render(){
   badgeVer.textContent = VERSIONS[idx];
   badgeStep.textContent = idx + 1;
+  badgeTotal.textContent = N;
   counter.textContent = `${idx + 1} / ${N}`;
   segs.forEach((s, i) => {
     s.classList.toggle("done", i < idx);
